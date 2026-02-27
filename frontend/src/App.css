@@ -1603,3 +1603,152 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .neo-landing {
+    padding: 18px 10px 20px;
+  }
+
+  .neo-copy,
+  .neo-mock,
+  .neo-feature-card,
+  .neo-process,
+  .neo-cta-band,
+  .neo-footer {
+    box-shadow: 4px 4px 0 var(--neo-secondary);
+  }
+
+  .discord-topbar {
+    padding: 8px 10px;
+    min-height: auto;
+    gap: 8px;
+  }
+
+  .brand {
+    width: 100%;
+    font-size: 1rem;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .topbar-actions button {
+    padding: 9px 6px;
+    font-size: 0.86rem;
+  }
+
+  .page-grid,
+  .neo-chat-layout {
+    gap: 10px;
+  }
+
+  .content-panel {
+    padding: 14px;
+  }
+
+  .content-panel h1 {
+    font-size: 1.45rem;
+  }
+
+  .neo-chat-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .neo-chat-header strong {
+    width: 100%;
+  }
+
+  .neo-chat-home-btn {
+    margin-left: 0;
+    padding: 6px 8px;
+    font-size: 0.84rem;
+  }
+
+  .neo-message-list {
+    padding: 10px;
+    gap: 8px;
+    max-height: 50vh;
+  }
+
+  .neo-message-row {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .neo-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+  }
+
+  .neo-message-meta strong {
+    font-size: 0.86rem;
+  }
+
+  .neo-message-meta span {
+    font-size: 0.72rem;
+  }
+
+  .neo-chat-input-wrap {
+    padding: 10px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "input input"
+      "ai send";
+  }
+
+  .neo-chat-ai-btn {
+    grid-area: ai;
+    justify-self: start;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  .neo-chat-draft-input {
+    grid-area: input;
+    font-size: 0.9rem;
+  }
+
+  .neo-chat-send-btn {
+    grid-area: send;
+    justify-self: end;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+  }
+
+  .neo-whiteboard-wrap {
+    padding: 8px;
+  }
+
+  .neo-whiteboard-toolbar {
+    gap: 6px;
+  }
+
+  .neo-whiteboard-toolbar label {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+
+  .neo-whiteboard-toolbar button {
+    padding: 6px 8px;
+    font-size: 0.78rem;
+  }
+
+  .neo-whiteboard-canvas {
+    height: 180px;
+  }
+
+  .settings-card {
+    padding: 14px;
+    box-shadow: 4px 4px 0 var(--neo-secondary);
+  }
+
+  .settings-card h1 {
+    font-size: 1.55rem;
+  }
+}

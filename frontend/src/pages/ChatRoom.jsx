@@ -244,6 +244,7 @@ export default function ChatRoom({ onGoHome, account }) {
             AI
           </button>
           <input
+            className="neo-chat-draft-input"
             placeholder={'Message #general (use ```js ... ``` for code)'}
             value={draftMessage}
             onChange={(e) => setDraftMessage(e.target.value)}
@@ -254,7 +255,7 @@ export default function ChatRoom({ onGoHome, account }) {
               }
             }}
           />
-          <button type="button" onClick={sendMessage}>Send</button>
+          <button type="button" className="neo-chat-send-btn" onClick={sendMessage}>Send</button>
         </div>
       </div>
 
