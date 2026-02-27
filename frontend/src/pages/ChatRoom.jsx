@@ -9,29 +9,29 @@ const members = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
 
 export default function ChatRoom() {
   return (
-    <section className="chat-layout">
-      <aside className="panel room-sidebar">
-        <div className="panel-title">Rooms</div>
-        <ul className="channel-list">
-          <li className="channel-item active"><span className="hash">#</span>general</li>
-          <li className="channel-item"><span className="hash">#</span>backend</li>
-          <li className="channel-item"><span className="hash">#</span>frontend</li>
-          <li className="channel-item"><span className="hash">#</span>devops</li>
+    <section className="neo-chat-layout">
+      <aside className="neo-chat-panel neo-chat-rooms">
+        <div className="neo-chat-title">Rooms</div>
+        <ul className="neo-chat-list">
+          <li className="neo-chat-item active"><span className="neo-chat-hash">#</span>general</li>
+          <li className="neo-chat-item"><span className="neo-chat-hash">#</span>backend</li>
+          <li className="neo-chat-item"><span className="neo-chat-hash">#</span>frontend</li>
+          <li className="neo-chat-item"><span className="neo-chat-hash">#</span>devops</li>
         </ul>
       </aside>
 
-      <div className="panel chat-main">
-        <div className="chat-header">
+      <div className="neo-chat-panel neo-chat-main">
+        <div className="neo-chat-header">
           <strong># general</strong>
-          <span>Engineering sync and quick updates</span>
+          <span>High-priority engineering sync and build updates</span>
         </div>
 
-        <div className="message-list">
+        <div className="neo-message-list">
           {messages.map((message) => (
-            <article key={`${message.user}-${message.time}`} className="message-row">
-              <div className="avatar">{message.user[0]}</div>
+            <article key={`${message.user}-${message.time}`} className="neo-message-row">
+              <div className="neo-avatar">{message.user[0]}</div>
               <div>
-                <div className="message-meta">
+                <div className="neo-message-meta">
                   <strong>{message.user}</strong>
                   <span>{message.time}</span>
                 </div>
@@ -41,17 +41,18 @@ export default function ChatRoom() {
           ))}
         </div>
 
-        <div className="chat-input-wrap">
+        <div className="neo-chat-input-wrap">
           <input placeholder="Message #general" />
+          <button type="button">Send</button>
         </div>
       </div>
 
-      <aside className="panel members-panel">
-        <div className="panel-title">Online - {members.length}</div>
-        <ul className="member-list">
+      <aside className="neo-chat-panel neo-chat-members">
+        <div className="neo-chat-title">Online - {members.length}</div>
+        <ul className="neo-member-list">
           {members.map((member) => (
             <li key={member}>
-              <span className="status-dot" />
+              <span className="neo-status-dot" />
               {member}
             </li>
           ))}

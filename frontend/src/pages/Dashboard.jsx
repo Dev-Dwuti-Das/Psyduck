@@ -24,8 +24,8 @@ export default function Dashboard() {
       <div className="panel content-panel">
         <h1>Welcome to DevRooms</h1>
         <p className="muted">
-          Discord-style collaborative space for engineering teams. Jump into channels, start voice calls,
-          and coordinate code reviews in one place.
+          Neobrutal collaboration hub for engineering teams. Jump into channels, start voice calls,
+          and coordinate code reviews with high-contrast focus.
         </p>
 
         <div className="stats-row">
