@@ -1,9 +1,10 @@
 const channels = ['welcome', 'announcements', 'frontend-help', 'backend-help', 'ai-lab', 'showcase'];
 
-const activity = [
-  { title: 'Sprint Voice', users: '6 online', status: 'Live' },
-  { title: 'Pair Programming', users: '3 online', status: 'Live' },
-  { title: 'Design Review', users: 'Starts in 20m', status: 'Scheduled' },
+const contacts = [
+  { name: 'Ava Thompson', role: 'Frontend Lead', status: 'Online' },
+  { name: 'Noah Clark', role: 'Backend Engineer', status: 'Online' },
+  { name: 'Mia (AI)', role: 'Assistant Bot', status: 'Available' },
+  { name: 'Liam Scott', role: 'DevOps Engineer', status: 'Away' },
 ];
 
 export default function Dashboard() {
@@ -45,13 +46,13 @@ export default function Dashboard() {
       </div>
 
       <aside className="panel activity-panel">
-        <div className="panel-title">Voice Activity</div>
+        <div className="panel-title">Contacts</div>
         <div className="activity-list">
-          {activity.map((item) => (
-            <article key={item.title} className="activity-card">
-              <h3>{item.title}</h3>
-              <p>{item.users}</p>
-              <span>{item.status}</span>
+          {contacts.map((contact) => (
+            <article key={contact.name} className="activity-card">
+              <h3>{contact.name}</h3>
+              <p>{contact.role}</p>
+              <span>{contact.status}</span>
             </article>
           ))}
         </div>

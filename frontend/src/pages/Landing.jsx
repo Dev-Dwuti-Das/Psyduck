@@ -1,6 +1,10 @@
-export default function Landing({ onEnterDashboard, onEnterChat }) {
+export default function Landing({
+  onEnterDashboard,
+  onEnterChat,
+  themeVars,
+}) {
   return (
-    <section className="neo-landing">
+    <section className="neo-landing" style={themeVars}>
       <header className="neo-nav">
         <div className="neo-logo">DEVROOMS</div>
         <nav className="neo-nav-links">
