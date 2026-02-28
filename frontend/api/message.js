@@ -5,6 +5,7 @@ const {
   PUSHER_KEY,
   PUSHER_SECRET,
   PUSHER_CLUSTER,
+  GEMINI_API_KEY,
 } = process.env;
 
 const pusher = new Pusher({
@@ -15,7 +16,6 @@ const pusher = new Pusher({
   useTLS: true,
 });
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const AI_BOT_NAME = 'Mia (AI)';
 const chatHistoryByRoom = new Map();
 
@@ -46,6 +46,7 @@ const askGemini = async ({ context, userPrompt }) => {
 
   const prompt = [
     'You are an AI coding assistant in a developer chat room.',
+    'Use prior chat context when the user asks about code above.',
     'Answer clearly and shortly.',
     context ? `Previous conversation:\n${context}` : '',
     `User question:\n${userPrompt}`,
@@ -54,13 +55,13 @@ const askGemini = async ({ context, userPrompt }) => {
     .join('\n\n');
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 400 },
+        generationConfig: { temperature: 0.4, maxOutputTokens: 500 },
       }),
     },
   );
@@ -88,13 +89,8 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const message = body?.message?.trim?.() || '';
-    const username = body?.username?.trim?.() || 'Guest';
-    const time = body?.time || new Date().toISOString();
-
-<<<<<<< HEAD
-    const message = body?.message;
     const roomId = body?.roomId || 'general';
+    const message = body?.message;
 
     if (!message || typeof message.text !== 'string') {
       return res.status(400).json({ ok: false, error: 'Missing message' });
@@ -110,16 +106,19 @@ export default async function handler(req, res) {
 
     const history = getRoomHistory(roomId);
     history.push(normalizedUserMessage);
-
     await pusher.trigger('chat', 'message', { message: normalizedUserMessage });
 
     const trimmedText = normalizedUserMessage.text.trim();
-    const shouldCallAi = trimmedText.toLowerCase().startsWith('/ai');
+    const shouldCallAi = /\B@mia\b/i.test(trimmedText) || /^\/ai\b/i.test(trimmedText);
     if (!shouldCallAi) {
       return res.status(200).json({ ok: true });
     }
 
-    const userPrompt = trimmedText.replace(/^\/ai\b/i, '').trim() || 'Continue.';
+    const userPrompt = trimmedText
+      .replace(/^\/ai\b[:,-]?\s*/i, '')
+      .replace(/\B@mia\b[:,-]?\s*/i, '')
+      .trim() || 'Continue.';
+
     const context = buildContext(history.slice(0, -1));
 
     let aiText;
@@ -141,17 +140,9 @@ export default async function handler(req, res) {
     history.push(aiMessage);
     await pusher.trigger('chat', 'message', { message: aiMessage });
 
-    return res.status(200).json({ ok: true, ai: aiMessage });
-=======
-    if (!message) {
-      return res.status(400).json({ ok: false, error: 'Missing message' });
-    }
-
-    await pusher.trigger('chat', 'message', { message, username, time });
-    return res.status(200).json({ ok: true });
->>>>>>> main
+    return res.status(200).json({ ok: true, aiMessage });
   } catch (error) {
     console.error('Pusher trigger failed', error);
-    return res.status(500).json({ ok: false, error: 'Pusher trigger failed' });
+    return res.status(500).json({ ok: false, error: 'Message processing failed' });
   }
 }
