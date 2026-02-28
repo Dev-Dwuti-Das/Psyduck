@@ -2,6 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { createPusherClient } from '../lib/pusher';
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
+import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx';
+import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
+import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
+
+SyntaxHighlighter.registerLanguage('javascript', javascript);
+SyntaxHighlighter.registerLanguage('jsx', jsx);
+SyntaxHighlighter.registerLanguage('typescript', typescript);
+SyntaxHighlighter.registerLanguage('tsx', tsx);
 
 const initialMessages = [];
 
@@ -101,7 +110,12 @@ export default function ChatRoom({ onGoHome, account }) {
     channel.bind('message', (payload) => {
       const incoming = payload?.message;
       if (!incoming) return;
-      setMessages((prev) => [...prev, incoming]);
+      setMessages((prev) => {
+        if (incoming?.id && prev.some((message) => message.id === incoming.id)) {
+          return prev;
+        }
+        return [...prev, incoming];
+      });
     });
 
     return () => {
@@ -111,7 +125,7 @@ export default function ChatRoom({ onGoHome, account }) {
     };
   }, []);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const trimmed = draftMessage.trim();
     if (!trimmed) return;
     const userMessage = {
@@ -122,21 +136,102 @@ export default function ChatRoom({ onGoHome, account }) {
     };
     setMessages((prev) => [...prev, userMessage]);
     setDraftMessage('');
-    fetch('/api/message', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userMessage }),
-    });
+    try {
+      const response = await fetch('/api/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: 'general', message: userMessage }),
+      });
+
+      if (!response.ok) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            user: 'Mia (AI)',
+            time: getCurrentTime(),
+            text: 'I could not respond right now. Please retry in a moment.',
+            isBot: true,
+          },
+        ]);
+        return;
+      }
+
+      const data = await response.json();
+      if (data?.aiMessage) {
+        setMessages((prev) => {
+          if (data.aiMessage?.id && prev.some((message) => message.id === data.aiMessage.id)) {
+            return prev;
+          }
+          return [...prev, data.aiMessage];
+        });
+      }
+    } catch (_error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: nextId(),
+          user: 'Mia (AI)',
+          time: getCurrentTime(),
+          text: 'I could not reach the AI service. Please check backend and try again.',
+          isBot: true,
+        },
+      ]);
+    }
   };
 
-  const isCodeMessage = (text) => /^```[\w-]*\n[\s\S]*\n```$/.test(text.trim());
+  const languageAliasMap = {
+    js: 'javascript',
+    javascript: 'javascript',
+    node: 'javascript',
+    jsx: 'jsx',
+    ts: 'typescript',
+    tsx: 'tsx',
+    py: 'python',
+    rb: 'ruby',
+    sh: 'bash',
+    shell: 'bash',
+    yml: 'yaml',
+  };
 
-  const parseCodeMessage = (text) => {
-    const match = text.trim().match(/^```([\w-]*)\n([\s\S]*)\n```$/);
-    return {
-      language: match?.[1] || 'text',
-      code: match?.[2] || text,
-    };
+  const parseMessageParts = (text) => {
+    const value = String(text ?? '');
+    const parts = [];
+    let cursor = 0;
+
+    while (cursor < value.length) {
+      const fenceStart = value.indexOf('```', cursor);
+      if (fenceStart === -1) {
+        parts.push({ type: 'text', value: value.slice(cursor) });
+        break;
+      }
+
+      if (fenceStart > cursor) {
+        parts.push({ type: 'text', value: value.slice(cursor, fenceStart) });
+      }
+
+      const fenceEnd = value.indexOf('```', fenceStart + 3);
+      if (fenceEnd === -1) {
+        parts.push({ type: 'text', value: value.slice(fenceStart) });
+        break;
+      }
+
+      const fencedRaw = value.slice(fenceStart + 3, fenceEnd);
+      const normalizedFence = fencedRaw.replace(/^\r?\n/, '');
+      const languageMatch = normalizedFence.match(/^([a-zA-Z][\w-]*)\r?\n([\s\S]*)$/);
+      const rawLanguage = (languageMatch?.[1] || '').toLowerCase();
+      const code = languageMatch ? languageMatch[2] : normalizedFence;
+
+      parts.push({
+        type: 'code',
+        language: languageAliasMap[rawLanguage] || rawLanguage || 'javascript',
+        code,
+      });
+
+      cursor = fenceEnd + 3;
+    }
+
+    return parts.filter((part) => part.type === 'code' || part.value);
   };
 
   return (
@@ -176,14 +271,16 @@ export default function ChatRoom({ onGoHome, account }) {
                   <strong>{message.user}</strong>
                   <span>{message.time}</span>
                 </div>
-                {isCodeMessage(message.text) ? (
-                  <div className="neo-code-block">
-                    <SyntaxHighlighter language={parseCodeMessage(message.text).language} style={oneDark}>
-                      {parseCodeMessage(message.text).code}
-                    </SyntaxHighlighter>
-                  </div>
-                ) : (
-                  <p>{message.text}</p>
+                {parseMessageParts(message.text).map((part, index) =>
+                  part.type === 'code' ? (
+                    <div className="neo-code-block" key={`${message.id}-code-${index}`}>
+                      <SyntaxHighlighter language={part.language} style={oneDark}>
+                        {part.code}
+                      </SyntaxHighlighter>
+                    </div>
+                  ) : (
+                    <p key={`${message.id}-text-${index}`}>{part.value}</p>
+                  ),
                 )}
               </div>
             </article>
