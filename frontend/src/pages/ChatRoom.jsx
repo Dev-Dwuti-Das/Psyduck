@@ -16,7 +16,7 @@ const initialMessages = [];
 
 const members = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
 
-export default function ChatRoom({ onGoHome, account }) {
+export default function ChatRoom({ onGoHome }) {
   const canvasRef = useRef(null);
   const messageListRef = useRef(null);
   const isDrawingRef = useRef(false);
@@ -26,7 +26,15 @@ export default function ChatRoom({ onGoHome, account }) {
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [messages, setMessages] = useState(initialMessages);
   const [draftMessage, setDraftMessage] = useState('');
-  const currentUser = (account?.displayName || 'You').trim() || 'You';
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem('chat_username');
+    const input = stored || window.prompt('Enter your username') || '';
+    const finalName = input.trim() || `Guest-${Math.random().toString(36).slice(2, 6)}`;
+    setUsername(finalName);
+    window.localStorage.setItem('chat_username', finalName);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -101,8 +109,6 @@ export default function ChatRoom({ onGoHome, account }) {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
-  const nextId = () => `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
   useEffect(() => {
     const pusher = createPusherClient();
     const channel = pusher.subscribe('chat');
@@ -127,14 +133,7 @@ export default function ChatRoom({ onGoHome, account }) {
 
   const sendMessage = async () => {
     const trimmed = draftMessage.trim();
-    if (!trimmed) return;
-    const userMessage = {
-      id: nextId(),
-      user: currentUser,
-      time: getCurrentTime(),
-      text: trimmed,
-    };
-    setMessages((prev) => [...prev, userMessage]);
+    if (!trimmed || !username) return;
     setDraftMessage('');
     try {
       const response = await fetch('/api/message', {
