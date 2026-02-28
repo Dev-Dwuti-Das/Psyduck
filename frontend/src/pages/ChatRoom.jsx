@@ -100,8 +100,6 @@ export default function ChatRoom({ onGoHome }) {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
-  const nextId = () => `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
   useEffect(() => {
     const pusher = createPusherClient();
     const channel = pusher.subscribe('chat');
@@ -111,7 +109,7 @@ export default function ChatRoom({ onGoHome }) {
       setMessages((prev) => [
         ...prev,
         {
-          id: nextId(),
+          id: payload.id || `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           user: payload.username,
           time: payload.time ? new Date(payload.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : getCurrentTime(),
           text: payload.message,
@@ -129,18 +127,16 @@ export default function ChatRoom({ onGoHome }) {
   const sendMessage = () => {
     const trimmed = draftMessage.trim();
     if (!trimmed || !username) return;
-    const userMessage = {
-      id: nextId(),
-      user: username,
-      time: getCurrentTime(),
-      text: trimmed,
-    };
-    setMessages((prev) => [...prev, userMessage]);
     setDraftMessage('');
     fetch('/api/message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: trimmed, username, time: new Date().toISOString() }),
+      body: JSON.stringify({
+        id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        message: trimmed,
+        username,
+        time: new Date().toISOString(),
+      }),
     });
   };
 
@@ -187,7 +183,7 @@ export default function ChatRoom({ onGoHome }) {
                 key={message.id}
                 className={`neo-message-row ${message.isBot ? 'neo-message-row-bot' : ''} ${isSelf ? 'neo-message-row-self' : ''}`}
               >
-                <div className="neo-avatar">{(isSelf ? 'Y' : message.user[0])}</div>
+                <div className="neo-avatar">{isSelf ? 'Y' : message.user[0]}</div>
                 <div className="neo-message-body">
                   <div className="neo-message-meta">
                     <strong>{isSelf ? 'You' : message.user}</strong>
