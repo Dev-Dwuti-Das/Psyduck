@@ -7,7 +7,7 @@ const initialMessages = [];
 
 const members = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
 
-export default function ChatRoom({ onGoHome, account }) {
+export default function ChatRoom({ onGoHome }) {
   const canvasRef = useRef(null);
   const messageListRef = useRef(null);
   const isDrawingRef = useRef(false);
@@ -17,7 +17,15 @@ export default function ChatRoom({ onGoHome, account }) {
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [messages, setMessages] = useState(initialMessages);
   const [draftMessage, setDraftMessage] = useState('');
-  const currentUser = (account?.displayName || 'You').trim() || 'You';
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem('chat_username');
+    const input = stored || window.prompt('Enter your username') || '';
+    const finalName = input.trim() || `Guest-${Math.random().toString(36).slice(2, 6)}`;
+    setUsername(finalName);
+    window.localStorage.setItem('chat_username', finalName);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -99,9 +107,16 @@ export default function ChatRoom({ onGoHome, account }) {
     const channel = pusher.subscribe('chat');
 
     channel.bind('message', (payload) => {
-      const incoming = payload?.message;
-      if (!incoming) return;
-      setMessages((prev) => [...prev, incoming]);
+      if (!payload?.message || !payload?.username) return;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: nextId(),
+          user: payload.username,
+          time: payload.time ? new Date(payload.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : getCurrentTime(),
+          text: payload.message,
+        },
+      ]);
     });
 
     return () => {
@@ -113,10 +128,10 @@ export default function ChatRoom({ onGoHome, account }) {
 
   const sendMessage = () => {
     const trimmed = draftMessage.trim();
-    if (!trimmed) return;
+    if (!trimmed || !username) return;
     const userMessage = {
       id: nextId(),
-      user: currentUser,
+      user: username,
       time: getCurrentTime(),
       text: trimmed,
     };
@@ -125,7 +140,7 @@ export default function ChatRoom({ onGoHome, account }) {
     fetch('/api/message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userMessage }),
+      body: JSON.stringify({ message: trimmed, username, time: new Date().toISOString() }),
     });
   };
 
@@ -165,29 +180,32 @@ export default function ChatRoom({ onGoHome, account }) {
           </button>
         </div>
         <div className="neo-message-list" ref={messageListRef}>
-          {messages.map((message) => (
-            <article
-              key={message.id}
-              className={`neo-message-row ${message.isBot ? 'neo-message-row-bot' : ''} ${message.user === currentUser ? 'neo-message-row-self' : ''}`}
-            >
-              <div className="neo-avatar">{message.user[0]}</div>
-              <div className="neo-message-body">
-                <div className="neo-message-meta">
-                  <strong>{message.user}</strong>
-                  <span>{message.time}</span>
-                </div>
-                {isCodeMessage(message.text) ? (
-                  <div className="neo-code-block">
-                    <SyntaxHighlighter language={parseCodeMessage(message.text).language} style={oneDark}>
-                      {parseCodeMessage(message.text).code}
-                    </SyntaxHighlighter>
+          {messages.map((message) => {
+            const isSelf = message.user === username;
+            return (
+              <article
+                key={message.id}
+                className={`neo-message-row ${message.isBot ? 'neo-message-row-bot' : ''} ${isSelf ? 'neo-message-row-self' : ''}`}
+              >
+                <div className="neo-avatar">{(isSelf ? 'Y' : message.user[0])}</div>
+                <div className="neo-message-body">
+                  <div className="neo-message-meta">
+                    <strong>{isSelf ? 'You' : message.user}</strong>
+                    <span>{message.time}</span>
                   </div>
-                ) : (
-                  <p>{message.text}</p>
-                )}
-              </div>
-            </article>
-          ))}
+                  {isCodeMessage(message.text) ? (
+                    <div className="neo-code-block">
+                      <SyntaxHighlighter language={parseCodeMessage(message.text).language} style={oneDark}>
+                        {parseCodeMessage(message.text).code}
+                      </SyntaxHighlighter>
+                    </div>
+                  ) : (
+                    <p>{message.text}</p>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
 
         {isWhiteboardOpen && (

@@ -7,11 +7,6 @@ const {
   PUSHER_CLUSTER,
 } = process.env;
 
-console.log('PUSHER_APP_ID', PUSHER_APP_ID ? 'set' : 'missing');
-console.log('PUSHER_KEY', PUSHER_KEY ? 'set' : 'missing');
-console.log('PUSHER_SECRET', PUSHER_SECRET ? 'set' : 'missing');
-console.log('PUSHER_CLUSTER', PUSHER_CLUSTER ? 'set' : 'missing');
-
 const pusher = new Pusher({
   appId: PUSHER_APP_ID,
   key: PUSHER_KEY,
@@ -28,14 +23,15 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    console.log('Request body', body);
+    const message = body?.message?.trim?.() || '';
+    const username = body?.username?.trim?.() || 'Guest';
+    const time = body?.time || new Date().toISOString();
 
-    const message = body?.message;
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Missing message' });
     }
 
-    await pusher.trigger('chat', 'message', { message });
+    await pusher.trigger('chat', 'message', { message, username, time });
     return res.status(200).json({ ok: true });
   } catch (error) {
     console.error('Pusher trigger failed', error);
