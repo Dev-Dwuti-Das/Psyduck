@@ -1,18 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { createPusherClient } from '../lib/pusher';
 
-const initialMessages = [
-  { id: 'm-1', user: 'Ava', time: '10:14', text: 'Pushed the auth middleware update to `feature/auth-v2`.' },
-  { id: 'm-2', user: 'Noah', time: '10:16', text: 'Nice. I will test refresh token expiry on staging.' },
-  { id: 'm-3', user: 'Mia (AI)', time: '10:17', text: 'Reminder: run `npm run lint` before opening PR.', isBot: true },
-  { id: 'm-4', user: 'Liam', time: '10:20', text: 'Can someone review the websocket reconnect patch?' },
-];
+const initialMessages = [];
 
 const members = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
 
 export default function ChatRoom({ onGoHome, account }) {
   const canvasRef = useRef(null);
+  const messageListRef = useRef(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef({ x: 0, y: 0 });
   const [brushColor, setBrushColor] = useState('#111111');
@@ -20,7 +17,7 @@ export default function ChatRoom({ onGoHome, account }) {
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [messages, setMessages] = useState(initialMessages);
   const [draftMessage, setDraftMessage] = useState('');
-  const timeoutRef = useRef(null);
+  const currentUser = (account?.displayName || 'You').trim() || 'You';
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,6 +28,11 @@ export default function ChatRoom({ onGoHome, account }) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   }, []);
+
+  useEffect(() => {
+    if (!messageListRef.current) return;
+    messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+  }, [messages]);
 
   const getPoint = (event) => {
     const canvas = canvasRef.current;
@@ -92,29 +94,21 @@ export default function ChatRoom({ onGoHome, account }) {
 
   const nextId = () => `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-  const buildAiReply = (input) => {
-    const text = input.toLowerCase();
-    if (/^\/help/.test(text)) {
-      return 'AI tips: use ```js ... ``` to share code, ask "explain this", "find bug", or "optimize".';
-    }
-    if (isCodeMessage(input)) {
-      const { language, code } = parseCodeMessage(input);
-      return `Nice ${language} snippet. Quick review: keep functions small, handle errors, and add tests for edge cases. I can also refactor this if you paste requirements.`;
-    }
-    if (text.includes('error') || text.includes('bug') || text.includes('fix')) {
-      return 'Debug checklist: reproduce reliably, isolate smallest failing path, inspect recent changes, then add a regression test.';
-    }
-    if (text.includes('explain')) {
-      return 'Share the code block and I will explain it line-by-line with complexity and edge cases.';
-    }
-    if (text.includes('optimize') || text.includes('performance')) {
-      return 'Optimization path: measure first, remove unnecessary re-renders, batch state updates, and memoize expensive computations.';
-    }
-    return 'Received. I can help with code review, debugging, architecture tradeoffs, or writing snippets. Try `/help` for quick commands.';
-  };
+  useEffect(() => {
+    const pusher = createPusherClient();
+    const channel = pusher.subscribe('chat');
 
-  useEffect(() => () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    channel.bind('message', (payload) => {
+      const incoming = payload?.message;
+      if (!incoming) return;
+      setMessages((prev) => [...prev, incoming]);
+    });
+
+    return () => {
+      channel.unbind_all();
+      channel.unsubscribe();
+      pusher.disconnect();
+    };
   }, []);
 
   const sendMessage = () => {
@@ -122,24 +116,17 @@ export default function ChatRoom({ onGoHome, account }) {
     if (!trimmed) return;
     const userMessage = {
       id: nextId(),
-      user: (account?.displayName || 'You').trim() || 'You',
+      user: currentUser,
       time: getCurrentTime(),
       text: trimmed,
     };
     setMessages((prev) => [...prev, userMessage]);
     setDraftMessage('');
-
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      const botMessage = {
-        id: nextId(),
-        user: 'Mia (AI)',
-        time: getCurrentTime(),
-        text: buildAiReply(trimmed),
-        isBot: true,
-      };
-      setMessages((prev) => [...prev, botMessage]);
-    }, 600);
+    fetch('/api/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: userMessage }),
+    });
   };
 
   const isCodeMessage = (text) => /^```[\w-]*\n[\s\S]*\n```$/.test(text.trim());
@@ -177,11 +164,14 @@ export default function ChatRoom({ onGoHome, account }) {
             Home
           </button>
         </div>
-        <div className="neo-message-list">
+        <div className="neo-message-list" ref={messageListRef}>
           {messages.map((message) => (
-            <article key={message.id} className={`neo-message-row ${message.isBot ? 'neo-message-row-bot' : ''}`}>
+            <article
+              key={message.id}
+              className={`neo-message-row ${message.isBot ? 'neo-message-row-bot' : ''} ${message.user === currentUser ? 'neo-message-row-self' : ''}`}
+            >
               <div className="neo-avatar">{message.user[0]}</div>
-              <div>
+              <div className="neo-message-body">
                 <div className="neo-message-meta">
                   <strong>{message.user}</strong>
                   <span>{message.time}</span>
@@ -235,7 +225,13 @@ export default function ChatRoom({ onGoHome, account }) {
           </div>
         )}
 
-        <div className="neo-chat-input-wrap">
+        <form
+          className="neo-chat-input-wrap"
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendMessage();
+          }}
+        >
           <button
             type="button"
             className="neo-chat-ai-btn"
@@ -255,8 +251,8 @@ export default function ChatRoom({ onGoHome, account }) {
               }
             }}
           />
-          <button type="button" className="neo-chat-send-btn" onClick={sendMessage}>Send</button>
-        </div>
+          <button type="submit" className="neo-chat-send-btn">Send</button>
+        </form>
       </div>
 
       <aside className="neo-chat-panel neo-chat-members">

@@ -1210,10 +1210,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px;
+  padding: 16px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   background:
     linear-gradient(rgba(11, 11, 11, 0.82), rgba(11, 11, 11, 0.82)),
     repeating-linear-gradient(
@@ -1225,11 +1225,13 @@
 
 .neo-message-row {
   display: flex;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 8px;
+  width: min(88%, 720px);
   border: 2px solid #000;
   background: var(--neo-chat-card-bg);
   color: var(--neo-chat-card-text);
-  padding: 10px;
+  padding: 9px 10px;
   box-shadow: 3px 3px 0 var(--neo-secondary);
   transition: transform 0.14s ease, box-shadow 0.14s ease;
 }
@@ -1237,6 +1239,11 @@
 .neo-message-row:hover {
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0 var(--neo-secondary);
+}
+
+.neo-message-row-self {
+  margin-left: auto;
+  background: color-mix(in srgb, var(--neo-secondary) 18%, var(--neo-chat-card-bg));
 }
 
 .neo-message-row-bot {
@@ -1261,6 +1268,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 2px;
 }
 
 .neo-message-meta strong {
@@ -1276,6 +1284,13 @@
   margin: 3px 0 0;
   line-height: 1.45;
   color: var(--neo-chat-card-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.neo-message-body {
+  min-width: 0;
+  flex: 1;
 }
 
 .neo-code-block {
@@ -1360,6 +1375,8 @@
 }
 
 .neo-chat-input-wrap {
+  position: sticky;
+  bottom: 0;
   border-top: 3px solid #000;
   background: var(--neo-composer-bg);
   padding: 12px;
@@ -1391,7 +1408,7 @@
   border: 2px solid #000;
   background: var(--neo-input-bg);
   color: var(--neo-input-text);
-  padding: 10px 12px;
+  padding: 11px 12px;
   font-size: 0.95rem;
 }
 
@@ -1676,6 +1693,7 @@
   }
 
   .neo-message-row {
+    width: 100%;
     padding: 8px;
     gap: 8px;
   }
